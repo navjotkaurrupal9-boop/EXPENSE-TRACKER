@@ -5,18 +5,18 @@ import seaborn as sns
 from io import StringIO
 import base64
 
-# --------- App Setup ----------
+
 st.set_page_config(page_title="Smart Expense Tracker", layout="wide", initial_sidebar_state="expanded")
 sns.set_theme(style="whitegrid")
 
-# Initialize session state
+
 if 'expenses' not in st.session_state:
     st.session_state.expenses = pd.DataFrame(columns=["Date", "Category", "Amount", "Description"])
 
-# ---------- Helper Functions ----------
+
 def add_expense(date, category, amount, description):
     """Add new expense row to session state DataFrame."""
-    # Ensure date saved as ISO string for CSV friendliness
+    
     date_str = pd.to_datetime(date).date().isoformat()
     new_row = pd.DataFrame([[date_str, category, float(amount), description]], columns=st.session_state.expenses.columns)
     st.session_state.expenses = pd.concat([st.session_state.expenses, new_row], ignore_index=True)
@@ -29,7 +29,7 @@ def save_expenses_to_local(filename="expenses.csv"):
 def get_csv_download_link(df, filename="expenses.csv"):
     """Return a Streamlit download button for the dataframe as CSV."""
     csv = df.to_csv(index=False)
-    b64 = base64.b64encode(csv.encode()).decode()  # some browsers need this
+    b64 = base64.b64encode(csv.encode()).decode()  
     href = f"data:file/csv;base64,{b64}"
     return href
 
@@ -37,12 +37,12 @@ def load_expenses_from_uploaded(uploaded_file):
     """Load uploaded CSV into session state (replace existing)."""
     try:
         df = pd.read_csv(uploaded_file)
-        # Normalize columns and types where possible
+        
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce").dt.date.astype(str)
         if "Amount" in df.columns:
             df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce").fillna(0.0)
-        # Keep only expected columns if extras exist
+        
         expected = ["Date", "Category", "Amount", "Description"]
         for col in expected:
             if col not in df.columns:
@@ -93,7 +93,7 @@ def expense_summary(df):
     total = df["Amount"].sum()
     avg = df["Amount"].mean() if len(df) > 0 else 0.0
     count = len(df)
-    # Highest spending category
+    
     cat_totals = df.groupby("Category")["Amount"].sum()
     if not cat_totals.empty:
         highest_cat = cat_totals.idxmax()
@@ -110,7 +110,7 @@ def expense_summary(df):
     else:
         cols[2].metric("Highest Category", "—")
 
-    # Recent month summary (if date column exists)
+    
     if "Date" in df.columns:
         try:
             df["Date_dt"] = pd.to_datetime(df["Date"], errors="coerce")
@@ -137,7 +137,7 @@ def predict_next_month(df):
     monthly_totals = df.groupby("Month")["Amount"].sum().sort_index()
     if len(monthly_totals) == 0:
         return None
-    predicted = monthly_totals.mean()  # simple average
+    predicted = monthly_totals.mean()  
     trend = None
     if len(monthly_totals) >= 2:
         trend = monthly_totals.pct_change().mean()
@@ -159,10 +159,10 @@ def budget_alerts(df, budget):
     else:
         st.success(f"✅ Under budget: ₹{spent:.2f} / ₹{budget:.2f}")
 
-# ---------- UI ----------
+
 st.title("💡 Smart Expense Tracker (No AI)")
 
-# Sidebar: Add expense + file ops + budget
+
 with st.sidebar:
     st.header("Add Expense")
     date = st.date_input("Date")
@@ -173,7 +173,7 @@ with st.sidebar:
     if st.button("Add Expense"):
         add_expense(date, category, amount, description)
         st.success("Expense added.")
-        st.rerun()  # refresh display to show new row immediately
+        st.rerun()  
 
     st.markdown("---")
     st.header("File Operations")
@@ -195,7 +195,7 @@ with st.sidebar:
     if st.button("Check Budget"):
         budget_alerts(st.session_state.expenses, budget)
 
-# Main area: table, visualizations, summary, prediction
+
 st.header("📊 Current Expenses")
 st.write(st.session_state.expenses)
 
@@ -219,7 +219,7 @@ with right:
         if pred["trend_pct"] is not None:
             trend_pct = pred["trend_pct"] * 100
             st.write(f"Average monthly trend: *{trend_pct:.1f}%* (positive means increasing)")
-        # Show small history table
+        
         try:
             history_df = pred["history"].reset_index()
             history_df.columns = ["Month", "Total"]
@@ -230,7 +230,7 @@ with right:
 
 st.markdown("---")
 st.header("Quick Insights")
-# Additional quick insights based on thresholds
+
 df = st.session_state.expenses.copy()
 if df.empty:
     st.info("No data for insights. Add some expenses to get quick insights.")
@@ -241,7 +241,7 @@ else:
         top_cat = cat_totals.index[0]
         top_amt = cat_totals.iloc[0]
         st.write(f"🔝 Top category: *{top_cat}* (₹{top_amt:.2f})")
-    # Look for many small expenses
+    
     small_expenses_count = (df["Amount"] < 100).sum()
     if small_expenses_count > 5:
         st.write(f"🔎 You have {small_expenses_count} small expenses (<₹100). These add up — consider reducing them.")
